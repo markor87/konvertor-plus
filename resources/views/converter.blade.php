@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Конвертор+</title>
+    <title>Конвертор+ | Латиница ↔ Ћирилица</title>
     <style>
         * {
             margin: 0;
@@ -13,14 +13,15 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #fff;
-            padding: 20px;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
             color: #333;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
         }
 
@@ -28,21 +29,29 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px 35px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
         }
 
         .header h1 {
-            font-size: 32px;
-            font-weight: bold;
-            color: #333;
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .loading-panel {
             display: none;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-style: italic;
-            color: #666;
+            color: #667eea;
+            font-weight: 500;
         }
 
         .loading-panel.active {
@@ -50,116 +59,154 @@
         }
 
         .progress-bar {
-            width: 120px;
-            height: 12px;
-            background: #e0e0e0;
-            border-radius: 6px;
+            width: 140px;
+            height: 8px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
             overflow: hidden;
         }
 
         .progress-bar-fill {
             height: 100%;
-            background: #4CAF50;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             transition: width 0.3s ease;
             width: 0%;
+            border-radius: 10px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
         }
 
         .tabs {
             display: flex;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 30px;
+            border-bottom: none;
         }
 
         .tab {
-            padding: 12px 24px;
-            background: #f5f5f5;
-            border: none;
+            padding: 14px 26px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid transparent;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 15px;
-            transition: all 0.3s;
-            border-top-left-radius: 4px;
-            border-top-right-radius: 4px;
-            margin-right: 4px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #667eea;
         }
 
         .tab:hover {
-            background: #e8e8e8;
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
         }
 
         .tab.active {
-            background: #fff;
-            border-bottom: 2px solid #fff;
-            margin-bottom: -2px;
-            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .tab-content {
             display: none;
-            padding: 20px 0;
         }
 
         .tab-content.active {
             display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 15px;
+            color: #4a5568;
         }
 
         textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
             font-family: inherit;
-            font-size: 14px;
+            font-size: 15px;
             resize: vertical;
-            min-height: 120px;
+            min-height: 130px;
+            transition: all 0.3s;
         }
 
         textarea:focus {
             outline: none;
-            border-color: #4CAF50;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         select {
-            width: 250px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            width: 280px;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .button-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: center;
-            margin: 20px 0;
+            margin: 26px 0;
+            flex-wrap: wrap;
         }
 
         button {
-            padding: 10px 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background: #f0f0f0;
+            padding: 13px 28px;
+            border: none;
+            border-radius: 12px;
+            background: white;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
-        button:hover {
-            background: #e0e0e0;
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
-        button:active {
-            transform: translateY(1px);
+        button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         button:disabled {
@@ -168,83 +215,120 @@
         }
 
         .btn-primary {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-color: #4CAF50;
         }
 
         .btn-primary:hover:not(:disabled) {
-            background: #45a049;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-copy {
+            padding: 8px 18px;
+            font-size: 13px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
         }
 
         .file-upload-area {
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 30px;
+            border: 3px dashed #cbd5e0;
+            border-radius: 16px;
+            padding: 40px;
             text-align: center;
-            margin: 20px 0;
+            margin: 24px 0;
             cursor: pointer;
             transition: all 0.3s;
+            background: rgba(102, 126, 234, 0.02);
         }
 
         .file-upload-area:hover {
-            border-color: #4CAF50;
-            background: #f9f9f9;
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-2px);
         }
 
         .file-upload-area.dragover {
-            border-color: #4CAF50;
-            background: #e8f5e9;
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
         }
 
         .file-list {
-            margin: 15px 0;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 4px;
-            max-height: 200px;
+            margin: 20px 0;
+            padding: 0;
+            max-height: 220px;
             overflow-y: auto;
         }
 
         .file-item {
-            padding: 8px;
-            background: white;
-            margin-bottom: 5px;
-            border-radius: 3px;
-            font-size: 13px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            margin-bottom: 8px;
+            border-radius: 10px;
+            font-size: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
 
         .file-item button {
-            padding: 4px 8px;
+            padding: 6px 12px;
             font-size: 12px;
+            background: #f56565;
+            color: white;
+        }
+
+        .file-item button:hover {
+            background: #e53e3e;
         }
 
         .result-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .alert {
-            padding: 12px 16px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease-in-out;
         }
 
         .alert-success {
-            background: #d4edda;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
             color: #155724;
-            border: 1px solid #c3e6cb;
+            border-left: 4px solid #28a745;
         }
 
         .alert-error {
-            background: #f8d7da;
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            border-left: 4px solid #dc3545;
         }
 
         input[type="file"] {
@@ -253,32 +337,77 @@
 
         .column-selector {
             display: none;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f9f9f9;
-            border-radius: 4px;
+            margin: 24px 0;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 12px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
         }
 
         .column-selector.active {
             display: block;
+            animation: fadeIn 0.3s ease-in-out;
         }
 
         .column-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 14px;
         }
 
         .column-checkbox {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .column-checkbox:hover {
+            background: rgba(102, 126, 234, 0.08);
         }
 
         .column-checkbox input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .column-checkbox label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
         }
     </style>
 </head>
@@ -286,7 +415,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Конвертор+</h1>
+            <h1>⚡ Конвертор+</h1>
             <div class="loading-panel" id="loadingPanel">
                 <span>Превод у току...</span>
                 <div class="progress-bar">
@@ -296,91 +425,101 @@
             </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab(0)">Превођење текста</button>
-            <button class="tab" onclick="switchTab(1)">DOCX превод</button>
-            <button class="tab" onclick="switchTab(2)">XLSX превод</button>
-        </div>
-
-        <!-- Tab 1: Text Conversion -->
-        <div class="tab-content active" id="tab-0">
-            <div class="form-group">
-                <label>Унесите текст:</label>
-                <textarea id="inputText" placeholder="Унесите текст за конвертовање..."></textarea>
+        <!-- Main Card -->
+        <div class="card">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab(0)">📝 Превођење текста</button>
+                <button class="tab" onclick="switchTab(1)">📄 DOCX превод</button>
+                <button class="tab" onclick="switchTab(2)">📊 XLSX превод</button>
             </div>
 
-            <div class="button-group">
-                <button onclick="convertText('latinica')">Конвертуј у латиницу</button>
-                <button onclick="convertText('cirilica')">Конвертуј у ћирилицу</button>
-            </div>
-
-            <div class="form-group">
-                <div class="result-header">
-                    <label>Резултат:</label>
-                    <button id="btnCopyResult" onclick="copyResult()" disabled>📋 Копирај</button>
+            <!-- Tab 1: Text Conversion -->
+            <div class="tab-content active" id="tab-0">
+                <div class="form-group">
+                    <label>Унесите текст:</label>
+                    <textarea id="inputText" placeholder="Унесите текст за конвертовање..."></textarea>
                 </div>
-                <textarea id="outputText" readonly placeholder="Резултат ће се приказати овде..."></textarea>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="convertText('latinica')">→ Конвертуј у латиницу</button>
+                    <button class="btn-primary" onclick="convertText('cirilica')">→ Конвертуј у ћирилицу</button>
+                </div>
+
+                <div class="form-group">
+                    <div class="result-header">
+                        <label>Резултат:</label>
+                        <button class="btn-copy" id="btnCopyResult" onclick="copyResult()" disabled>📋 Копирај</button>
+                    </div>
+                    <textarea id="outputText" readonly placeholder="Резултат ће се приказати овде..."></textarea>
+                </div>
+            </div>
+
+            <!-- Tab 2: DOCX Conversion -->
+            <div class="tab-content" id="tab-1">
+                <div class="form-group">
+                    <label>Изаберите правац превођења:</label>
+                    <select id="docxDirection">
+                        <option value="">-- Одаберите --</option>
+                        <option value="cirilica">Ћирилица</option>
+                        <option value="latinica">Латиница</option>
+                    </select>
+                </div>
+
+                <div class="file-upload-area" id="docxUploadArea" onclick="document.getElementById('docxFiles').click()">
+                    <div class="upload-icon">📄</div>
+                    <p style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Кликните или превуците DOCX фајлове овде</p>
+                    <p style="font-size: 13px; color: #718096;">Максимална величина фајла: 10MB</p>
+                    <input type="file" id="docxFiles" accept=".docx" multiple onchange="handleDocxFiles(this.files)">
+                </div>
+
+                <div id="docxFileList" class="file-list" style="display: none;"></div>
+
+                <div class="button-group">
+                    <button id="btnConvertDocx" class="btn-primary" onclick="convertDocx()" disabled>✨ Конвертуј DOCX</button>
+                </div>
+
+                <div id="docxAlert"></div>
+            </div>
+
+            <!-- Tab 3: XLSX Conversion -->
+            <div class="tab-content" id="tab-2">
+                <div class="form-group">
+                    <label>Изаберите правац превођења:</label>
+                    <select id="xlsxDirection">
+                        <option value="">-- Одаберите --</option>
+                        <option value="cirilica">Ћирилица</option>
+                        <option value="latinica">Латиница</option>
+                    </select>
+                </div>
+
+                <div class="file-upload-area" id="xlsxUploadArea" onclick="document.getElementById('xlsxFiles').click()">
+                    <div class="upload-icon">📊</div>
+                    <p style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Кликните или превуците XLSX фајлове овде</p>
+                    <p style="font-size: 13px; color: #718096;">Максимална величина фајла: 10MB</p>
+                    <input type="file" id="xlsxFiles" accept=".xlsx" multiple onchange="handleXlsxFiles(this.files)">
+                </div>
+
+                <div id="xlsxFileList" class="file-list" style="display: none;"></div>
+
+                <div id="columnSelector" class="column-selector">
+                    <label style="font-weight: 600; margin-bottom: 14px; display: block; color: #4a5568;">
+                        Одаберите колоне које желите да прескочите:
+                    </label>
+                    <div id="columnList" class="column-list"></div>
+                </div>
+
+                <div class="button-group">
+                    <button id="btnConvertXlsx" class="btn-primary" onclick="convertXlsx()" disabled>✨ Конвертуј XLSX</button>
+                </div>
+
+                <div id="xlsxAlert"></div>
             </div>
         </div>
 
-        <!-- Tab 2: DOCX Conversion -->
-        <div class="tab-content" id="tab-1">
-            <div class="form-group">
-                <label>Изаберите правац превођења:</label>
-                <select id="docxDirection">
-                    <option value="">-- Одаберите --</option>
-                    <option value="cirilica">Ћирилица</option>
-                    <option value="latinica">Латиница</option>
-                </select>
-            </div>
-
-            <div class="file-upload-area" id="docxUploadArea" onclick="document.getElementById('docxFiles').click()">
-                <p>📄 Кликните или превуците DOCX фајлове овде</p>
-                <p style="font-size: 12px; color: #666; margin-top: 5px;">Максимална величина фајла: 10MB</p>
-                <input type="file" id="docxFiles" accept=".docx" multiple onchange="handleDocxFiles(this.files)">
-            </div>
-
-            <div id="docxFileList" class="file-list" style="display: none;"></div>
-
-            <div class="button-group">
-                <button id="btnConvertDocx" class="btn-primary" onclick="convertDocx()" disabled>Конвертуј</button>
-            </div>
-
-            <div id="docxAlert"></div>
-        </div>
-
-        <!-- Tab 3: XLSX Conversion -->
-        <div class="tab-content" id="tab-2">
-            <div class="form-group">
-                <label>Изаберите правац превођења:</label>
-                <select id="xlsxDirection">
-                    <option value="">-- Одаберите --</option>
-                    <option value="cirilica">Ћирилица</option>
-                    <option value="latinica">Латиница</option>
-                </select>
-            </div>
-
-            <div class="file-upload-area" id="xlsxUploadArea" onclick="document.getElementById('xlsxFiles').click()">
-                <p>📊 Кликните или превуците XLSX фајлове овде</p>
-                <p style="font-size: 12px; color: #666; margin-top: 5px;">Максимална величина фајла: 10MB</p>
-                <input type="file" id="xlsxFiles" accept=".xlsx" multiple onchange="handleXlsxFiles(this.files)">
-            </div>
-
-            <div id="xlsxFileList" class="file-list" style="display: none;"></div>
-
-            <div id="columnSelector" class="column-selector">
-                <label style="font-weight: 600; margin-bottom: 10px; display: block;">
-                    Одаберите колоне које желите да прескочите:
-                </label>
-                <div id="columnList" class="column-list"></div>
-            </div>
-
-            <div class="button-group">
-                <button id="btnConvertXlsx" class="btn-primary" onclick="convertXlsx()" disabled>Конвертуј</button>
-            </div>
-
-            <div id="xlsxAlert"></div>
+        <!-- Footer -->
+        <div class="footer">
+            Made with ❤️ | Laravel 10 + PHP 8.1
         </div>
     </div>
 
@@ -424,6 +563,8 @@
                 if (data.success) {
                     document.getElementById('outputText').value = data.result;
                     document.getElementById('btnCopyResult').disabled = false;
+                } else {
+                    alert('Грешка: ' + (data.error || 'Непозната грешка'));
                 }
             } catch (error) {
                 alert('Грешка при конвертовању текста');
@@ -438,9 +579,10 @@
             document.execCommand('copy');
 
             const btn = document.getElementById('btnCopyResult');
+            const originalText = btn.textContent;
             btn.textContent = '✓ Копирано!';
             setTimeout(() => {
-                btn.textContent = '📋 Копирај';
+                btn.textContent = originalText;
             }, 1500);
         }
 
@@ -495,6 +637,8 @@
                 const data = await response.json();
                 if (data.success && data.headers) {
                     displayColumnSelector(data.headers);
+                } else {
+                    console.error('Error loading headers:', data.error);
                 }
             } catch (error) {
                 console.error('Error loading headers:', error);
@@ -528,8 +672,8 @@
                 const div = document.createElement('div');
                 div.className = 'file-item';
                 div.innerHTML = `
-                    <span>${file.name}</span>
-                    <button onclick="removeFile('${containerId === 'docxFileList' ? 'docx' : 'xlsx'}', ${index})">✕</button>
+                    <span>📎 ${file.name}</span>
+                    <button onclick="removeFile('${containerId === 'docxFileList' ? 'docx' : 'xlsx'}', ${index})">✕ Уклони</button>
                 `;
                 container.appendChild(div);
             });
@@ -591,13 +735,14 @@
                     a.remove();
                     window.URL.revokeObjectURL(url);
 
-                    showAlert('docxAlert', 'DOCX превод успешно завршен!', 'success');
+                    showAlert('docxAlert', '✅ DOCX превод успешно завршен!', 'success');
                     resetDocxForm();
                 } else {
-                    showAlert('docxAlert', 'Грешка при конвертовању DOCX фајлова', 'error');
+                    const errorData = await response.json();
+                    showAlert('docxAlert', '❌ Грешка: ' + (errorData.error || 'Непозната грешка'), 'error');
                 }
             } catch (error) {
-                showAlert('docxAlert', 'Грешка при конвертовању', 'error');
+                showAlert('docxAlert', '❌ Грешка при конвертовању', 'error');
                 console.error(error);
             } finally {
                 showLoading(false);
@@ -647,13 +792,14 @@
                     a.remove();
                     window.URL.revokeObjectURL(url);
 
-                    showAlert('xlsxAlert', 'XLSX превод успешно завршен!', 'success');
+                    showAlert('xlsxAlert', '✅ XLSX превод успешно завршен!', 'success');
                     resetXlsxForm();
                 } else {
-                    showAlert('xlsxAlert', 'Грешка при конвертовању XLSX фајлова', 'error');
+                    const errorData = await response.json();
+                    showAlert('xlsxAlert', '❌ Грешка: ' + (errorData.error || 'Непозната грешка'), 'error');
                 }
             } catch (error) {
-                showAlert('xlsxAlert', 'Грешка при конвертовању', 'error');
+                showAlert('xlsxAlert', '❌ Грешка при конвертовању', 'error');
                 console.error(error);
             } finally {
                 showLoading(false);
@@ -661,13 +807,25 @@
         }
 
         // Show loading
+        let progressInterval;
         function showLoading(show) {
             const panel = document.getElementById('loadingPanel');
             if (show) {
                 panel.classList.add('active');
-                updateProgress(0);
+                let progress = 0;
+                progressInterval = setInterval(() => {
+                    progress += 5;
+                    if (progress >= 90) {
+                        clearInterval(progressInterval);
+                    }
+                    updateProgress(progress);
+                }, 200);
             } else {
-                panel.classList.remove('active');
+                clearInterval(progressInterval);
+                updateProgress(100);
+                setTimeout(() => {
+                    panel.classList.remove('active');
+                }, 300);
             }
         }
 
@@ -732,29 +890,6 @@
                 }
             }, false);
         });
-
-        // Simulate progress for better UX
-        let progressInterval;
-        function showLoading(show) {
-            const panel = document.getElementById('loadingPanel');
-            if (show) {
-                panel.classList.add('active');
-                let progress = 0;
-                progressInterval = setInterval(() => {
-                    progress += 5;
-                    if (progress >= 90) {
-                        clearInterval(progressInterval);
-                    }
-                    updateProgress(progress);
-                }, 200);
-            } else {
-                clearInterval(progressInterval);
-                updateProgress(100);
-                setTimeout(() => {
-                    panel.classList.remove('active');
-                }, 300);
-            }
-        }
     </script>
 </body>
 </html>
