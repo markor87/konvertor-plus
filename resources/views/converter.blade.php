@@ -595,6 +595,15 @@
                 return;
             }
 
+            // Check file sizes (max 2MB per file)
+            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            const oversizedFiles = files.filter(f => f.size > maxSize);
+            if (oversizedFiles.length > 0) {
+                showAlert('docxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 2MB.`, 'error');
+                document.getElementById('docxFiles').value = '';
+                return;
+            }
+
             docxFiles = Array.from(files);
             displayFileList('docxFileList', docxFiles);
             document.getElementById('btnConvertDocx').disabled = docxFiles.length === 0;
@@ -605,6 +614,15 @@
             const direction = document.getElementById('xlsxDirection').value;
             if (!direction) {
                 alert('Молимо одаберите правац превођења');
+                document.getElementById('xlsxFiles').value = '';
+                return;
+            }
+
+            // Check file sizes (max 2MB per file)
+            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            const oversizedFiles = files.filter(f => f.size > maxSize);
+            if (oversizedFiles.length > 0) {
+                showAlert('xlsxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 2MB.`, 'error');
                 document.getElementById('xlsxFiles').value = '';
                 return;
             }
@@ -634,13 +652,21 @@
                     body: formData
                 });
 
+                // Check if response has content
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned invalid response. File might be too large (max 2MB).');
+                }
+
                 const data = await response.json();
                 if (data.success && data.headers) {
                     displayColumnSelector(data.headers);
                 } else {
+                    showAlert('xlsxAlert', '❌ ' + (data.error || 'Failed to load headers'), 'error');
                     console.error('Error loading headers:', data.error);
                 }
             } catch (error) {
+                showAlert('xlsxAlert', '❌ Грешка: ' + error.message, 'error');
                 console.error('Error loading headers:', error);
             }
         }

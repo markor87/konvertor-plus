@@ -78,7 +78,7 @@ class ConversionController extends Controller
             $request->validate([
                 'direction' => 'required|in:cirilica,latinica',
                 'files' => 'required|array',
-                'files.*' => 'file|mimes:docx,doc|max:10240' // max 10MB
+                'files.*' => 'file|mimes:docx,doc|max:2048' // max 2MB (matching PHP upload_max_filesize)
             ]);
 
             $direction = $request->input('direction');
@@ -217,11 +217,11 @@ class ConversionController extends Controller
                 ], 400);
             }
 
-            // Check file size (10MB = 10485760 bytes)
-            if ($file->getSize() > 10485760) {
+            // Check file size (2MB = 2097152 bytes - matching PHP upload_max_filesize)
+            if ($file->getSize() > 2097152) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'File too large. Maximum size is 10MB.'
+                    'error' => 'File too large. Maximum size is 2MB.'
                 ], 400);
             }
 
@@ -293,7 +293,7 @@ class ConversionController extends Controller
             $request->validate([
                 'direction' => 'required|in:cirilica,latinica',
                 'files' => 'required|array',
-                'files.*' => 'file|mimes:xlsx,xls|max:10240', // max 10MB
+                'files.*' => 'file|mimes:xlsx,xls|max:2048', // max 2MB (matching PHP upload_max_filesize)
                 'skip_columns' => 'nullable|array',
                 'skip_columns.*' => 'nullable|string'
             ]);
