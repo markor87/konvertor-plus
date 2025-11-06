@@ -13,7 +13,7 @@ use Exception;
  */
 class FirstRowFilter implements IReadFilter
 {
-    public function readCell(string $columnAddress, int $row, string $worksheetName = ''): bool
+    public function readCell($columnAddress, $row, $worksheetName = '')
     {
         // Učitaj samo prvi red
         return $row === 1;
