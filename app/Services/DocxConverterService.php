@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\Element\Text;
-use PhpOffice\PhpWord\Element\TextRun;
 use Exception;
+use ZipArchive;
+use DOMDocument;
+use DOMXPath;
 
 class DocxConverterService
 {
@@ -47,17 +47,48 @@ class DocxConverterService
                 throw new Exception('Failed to copy file');
             }
 
-            // Učitaj dokument
-            $phpWord = IOFactory::load($outputPath);
+            // DOCX je ZIP arhiva - manipulišemo direktno bez PHPWord Writer-a
+            // da избежамо проблеме са сликама
+            $zip = new \ZipArchive();
 
-            // Obradi sve sekcije
-            foreach ($phpWord->getSections() as $section) {
-                $this->processSectionElements($section->getElements(), $toCirilica);
+            if ($zip->open($outputPath) !== true) {
+                throw new Exception('Failed to open DOCX as ZIP archive');
             }
 
-            // Snimi dokument
-            $writer = IOFactory::createWriter($phpWord, 'Word2007');
-            $writer->save($outputPath);
+            // Ekstrakcija i konverzija document.xml (glavni tekst)
+            $documentXml = $zip->getFromName('word/document.xml');
+            if ($documentXml === false) {
+                throw new Exception('Failed to extract document.xml from DOCX');
+            }
+
+            // Konvertuj tekst unutar XML-a (čuvajući XML strukturu)
+            $convertedXml = $this->convertXmlContent($documentXml, $toCirilica);
+
+            // Zameni document.xml sa konvertovanim
+            $zip->deleteName('word/document.xml');
+            $zip->addFromString('word/document.xml', $convertedXml);
+
+            // Konvertuj headers ako postoje
+            for ($i = 1; $i <= 10; $i++) {
+                $headerXml = $zip->getFromName("word/header{$i}.xml");
+                if ($headerXml !== false) {
+                    $convertedHeader = $this->convertXmlContent($headerXml, $toCirilica);
+                    $zip->deleteName("word/header{$i}.xml");
+                    $zip->addFromString("word/header{$i}.xml", $convertedHeader);
+                }
+            }
+
+            // Konvertuj footers ako postoje
+            for ($i = 1; $i <= 10; $i++) {
+                $footerXml = $zip->getFromName("word/footer{$i}.xml");
+                if ($footerXml !== false) {
+                    $convertedFooter = $this->convertXmlContent($footerXml, $toCirilica);
+                    $zip->deleteName("word/footer{$i}.xml");
+                    $zip->addFromString("word/footer{$i}.xml", $convertedFooter);
+                }
+            }
+
+            $zip->close();
 
             return [
                 'success' => true,
@@ -75,44 +106,37 @@ class DocxConverterService
     }
 
     /**
-     * Rekurzivno obrađuje elemente dokumenta
+     * Konvertuje tekstualni sadržaj unutar XML-a, čuvajući XML tagove
      */
-    private function processSectionElements(array $elements, bool $toCirilica): void
+    private function convertXmlContent(string $xml, bool $toCirilica): string
     {
-        foreach ($elements as $element) {
-            // Obrada običnog teksta
-            if ($element instanceof Text) {
-                $text = $element->getText();
-                if (!empty($text)) {
-                    $converted = $toCirilica
-                        ? $this->textConverter->convertToCirilica($text)
-                        : $this->textConverter->convertToLatinica($text);
-                    $element->setText($converted);
-                }
-            }
-            // Obrada TextRun elemenata (formatiran tekst)
-            elseif ($element instanceof TextRun) {
-                foreach ($element->getElements() as $textElement) {
-                    if ($textElement instanceof Text) {
-                        $text = $textElement->getText();
-                        if (!empty($text)) {
-                            $converted = $toCirilica
-                                ? $this->textConverter->convertToCirilica($text)
-                                : $this->textConverter->convertToLatinica($text);
-                            $textElement->setText($converted);
-                        }
-                    }
-                }
-            }
-            // Obrada tabela
-            elseif (method_exists($element, 'getRows')) {
-                foreach ($element->getRows() as $row) {
-                    foreach ($row->getCells() as $cell) {
-                        $this->processSectionElements($cell->getElements(), $toCirilica);
-                    }
-                }
+        // Učitaj XML
+        $dom = new \DOMDocument();
+        $dom->preserveWhiteSpace = true;
+        $dom->formatOutput = false;
+
+        // Suppress warnings za malformed XML
+        $previousErrorLevel = libxml_use_internal_errors(true);
+        $dom->loadXML($xml);
+        libxml_use_internal_errors($previousErrorLevel);
+
+        // Pronađi sve <w:t> tagove (Word text nodes)
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+        $textNodes = $xpath->query('//w:t');
+
+        foreach ($textNodes as $node) {
+            $originalText = $node->nodeValue;
+            if (!empty($originalText)) {
+                $convertedText = $toCirilica
+                    ? $this->textConverter->convertToCirilica($originalText)
+                    : $this->textConverter->convertToLatinica($originalText);
+                $node->nodeValue = $convertedText;
             }
         }
+
+        return $dom->saveXML();
     }
 
     /**
