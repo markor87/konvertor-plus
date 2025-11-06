@@ -4,7 +4,21 @@ namespace App\Services;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Reader\IReadFilter;
 use Exception;
+
+/**
+ * Read Filter za učitavanje samo prvog reda Excel fajla
+ * Ovo drastično smanjuje memorijsku potrošnju
+ */
+class FirstRowFilter implements IReadFilter
+{
+    public function readCell(string $columnAddress, int $row, string $worksheetName = ''): bool
+    {
+        // Učitaj samo prvi red
+        return $row === 1;
+    }
+}
 
 class XlsxConverterService
 {
@@ -17,6 +31,8 @@ class XlsxConverterService
 
     /**
      * Dobija zaglavlja (prvi red) iz Excel fajla
+     * Koristi ReadFilter da učita SAMO prvi red, ne ceo fajl
+     * Ovo drastično smanjuje memorijsku potrošnju
      *
      * @param string $filePath Putanja do Excel fajla
      * @return array ['success' => bool, 'headers' => array|null, 'error' => string|null]
@@ -24,7 +40,13 @@ class XlsxConverterService
     public function getHeaders(string $filePath): array
     {
         try {
-            $spreadsheet = IOFactory::load($filePath);
+            // Kreiraj reader sa filterom koji čita samo prvi red
+            $reader = IOFactory::createReaderForFile($filePath);
+            $reader->setReadDataOnly(true);
+            $reader->setReadFilter(new FirstRowFilter());
+
+            // Učitaj samo prvi red (DRASTIČNO manje memorije!)
+            $spreadsheet = $reader->load($filePath);
             $worksheet = $spreadsheet->getActiveSheet();
 
             $headers = [];
@@ -41,6 +63,11 @@ class XlsxConverterService
                     ];
                 }
             }
+
+            // Oslobodi memoriju
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+            gc_collect_cycles();
 
             return [
                 'success' => true,
