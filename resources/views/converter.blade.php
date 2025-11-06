@@ -595,16 +595,19 @@
                 return;
             }
 
+            // Convert FileList to array first
+            const filesArray = Array.from(files);
+
             // Check file sizes (max 2MB per file)
             const maxSize = 2 * 1024 * 1024; // 2MB in bytes
-            const oversizedFiles = files.filter(f => f.size > maxSize);
+            const oversizedFiles = filesArray.filter(f => f.size > maxSize);
             if (oversizedFiles.length > 0) {
                 showAlert('docxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 2MB.`, 'error');
                 document.getElementById('docxFiles').value = '';
                 return;
             }
 
-            docxFiles = Array.from(files);
+            docxFiles = filesArray;
             displayFileList('docxFileList', docxFiles);
             document.getElementById('btnConvertDocx').disabled = docxFiles.length === 0;
         }
@@ -618,16 +621,19 @@
                 return;
             }
 
+            // Convert FileList to array first
+            const filesArray = Array.from(files);
+
             // Check file sizes (max 2MB per file)
             const maxSize = 2 * 1024 * 1024; // 2MB in bytes
-            const oversizedFiles = files.filter(f => f.size > maxSize);
+            const oversizedFiles = filesArray.filter(f => f.size > maxSize);
             if (oversizedFiles.length > 0) {
                 showAlert('xlsxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 2MB.`, 'error');
                 document.getElementById('xlsxFiles').value = '';
                 return;
             }
 
-            xlsxFiles = Array.from(files);
+            xlsxFiles = filesArray;
             displayFileList('xlsxFileList', xlsxFiles);
 
             // Get headers from first file
