@@ -598,11 +598,11 @@
             // Convert FileList to array first
             const filesArray = Array.from(files);
 
-            // Check file sizes (max 2MB per file)
-            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            // Check file sizes (max 10MB per file)
+            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
             const oversizedFiles = filesArray.filter(f => f.size > maxSize);
             if (oversizedFiles.length > 0) {
-                showAlert('docxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 2MB.`, 'error');
+                showAlert('docxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 10MB.`, 'error');
                 document.getElementById('docxFiles').value = '';
                 return;
             }
@@ -624,11 +624,11 @@
             // Convert FileList to array first
             const filesArray = Array.from(files);
 
-            // Check file sizes (max 2MB per file)
-            const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+            // Check file sizes (max 10MB per file)
+            const maxSize = 10 * 1024 * 1024; // 10MB in bytes
             const oversizedFiles = filesArray.filter(f => f.size > maxSize);
             if (oversizedFiles.length > 0) {
-                showAlert('xlsxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 2MB.`, 'error');
+                showAlert('xlsxAlert', `❌ Фајл је превелик: ${oversizedFiles[0].name}. Максимална величина је 10MB.`, 'error');
                 document.getElementById('xlsxFiles').value = '';
                 return;
             }
@@ -661,7 +661,7 @@
                 // Check if response has content
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned invalid response. File might be too large (max 2MB).');
+                    throw new Error('Server returned invalid response. File might be too large (max 10MB).');
                 }
 
                 const data = await response.json();
