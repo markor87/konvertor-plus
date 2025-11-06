@@ -55,7 +55,13 @@ class ConversionController extends Controller
                 'success' => true,
                 'result' => $result
             ]);
-        } catch (Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed: ' . $e->getMessage(),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
@@ -160,7 +166,13 @@ class ConversionController extends Controller
                 'failed' => $failed
             ], 500);
 
-        } catch (Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed: ' . $e->getMessage(),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -175,18 +187,39 @@ class ConversionController extends Controller
     public function getXlsxHeaders(Request $request)
     {
         try {
-            $request->validate([
+            // Validation
+            $validated = $request->validate([
                 'file' => 'required|file|mimes:xlsx,xls|max:10240'
             ]);
 
             $file = $request->file('file');
-            $filename = time() . '_' . $file->getClientOriginalName();
+
+            if (!$file) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No file uploaded'
+                ], 400);
+            }
+
+            // Generate unique filename
+            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+
+            // Store the file
             $path = $file->storeAs('uploads/xlsx', $filename);
+
+            if (!$path) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to store uploaded file'
+                ], 500);
+            }
+
             $filePath = storage_path('app/' . $path);
 
+            // Get headers from the file
             $result = $this->xlsxConverter->getHeaders($filePath);
 
-            // Obriši privremeni fajl
+            // Clean up temp file
             if (file_exists($filePath)) {
                 @unlink($filePath);
             }
@@ -194,19 +227,27 @@ class ConversionController extends Controller
             if ($result['success']) {
                 return response()->json([
                     'success' => true,
-                    'headers' => $result['headers']
+                    'headers' => $result['headers'] ?? []
                 ]);
             }
 
             return response()->json([
                 'success' => false,
-                'error' => $result['error']
+                'error' => $result['error'] ?? 'Unknown error occurred'
             ], 500);
 
-        } catch (Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Validation failed: ' . $e->getMessage(),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
+            // Catch all errors including fatal errors
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
@@ -221,13 +262,21 @@ class ConversionController extends Controller
                 'direction' => 'required|in:cirilica,latinica',
                 'files' => 'required|array',
                 'files.*' => 'file|mimes:xlsx,xls|max:10240', // max 10MB
-                'skip_columns' => 'nullable|array'
+                'skip_columns' => 'nullable|string'
             ]);
 
             $direction = $request->input('direction');
             $toCirilica = $direction === 'cirilica';
             $files = $request->file('files');
-            $skipColumns = $request->input('skip_columns', []);
+
+            // Parse skip_columns from JSON string to array
+            $skipColumnsRaw = $request->input('skip_columns', '[]');
+            $skipColumns = [];
+            if (is_string($skipColumnsRaw)) {
+                $skipColumns = json_decode($skipColumnsRaw, true) ?? [];
+            } elseif (is_array($skipColumnsRaw)) {
+                $skipColumns = $skipColumnsRaw;
+            }
 
             $filesData = [];
             $outputPaths = [];
@@ -235,14 +284,27 @@ class ConversionController extends Controller
 
             // Upload fajlova i priprema podataka
             foreach ($files as $index => $file) {
-                $filename = time() . '_' . $index . '_' . $file->getClientOriginalName();
+                $filename = time() . '_' . $index . '_' . uniqid() . '_' . $file->getClientOriginalName();
                 $path = $file->storeAs('uploads/xlsx', $filename);
+
+                if (!$path) {
+                    $failed[] = [
+                        'file' => $file->getClientOriginalName(),
+                        'error' => 'Failed to store file'
+                    ];
+                    continue;
+                }
+
                 $filePath = storage_path('app/' . $path);
 
-                // Dobij kolone za preskakanje za ovaj fajl
+                // Dobij kolone za preskakanje - default je prazna lista
                 $fileSkipColumns = [];
-                if (isset($skipColumns[$index]) && is_string($skipColumns[$index])) {
-                    $fileSkipColumns = json_decode($skipColumns[$index], true) ?? [];
+                if (isset($skipColumns[$index])) {
+                    if (is_string($skipColumns[$index])) {
+                        $fileSkipColumns = json_decode($skipColumns[$index], true) ?? [];
+                    } elseif (is_array($skipColumns[$index])) {
+                        $fileSkipColumns = $skipColumns[$index];
+                    }
                 }
 
                 $filesData[] = [
@@ -328,7 +390,13 @@ class ConversionController extends Controller
                 'failed' => $failed
             ], 500);
 
-        } catch (Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed: ' . $e->getMessage(),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
