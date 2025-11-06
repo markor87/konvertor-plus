@@ -186,18 +186,42 @@ class ConversionController extends Controller
      */
     public function getXlsxHeaders(Request $request)
     {
+        // Force JSON response for all errors
+        $request->headers->set('Accept', 'application/json');
+
         try {
-            // Validation
-            $validated = $request->validate([
-                'file' => 'required|file|mimes:xlsx,xls|max:10240'
-            ]);
-
-            $file = $request->file('file');
-
-            if (!$file) {
+            // Manual validation with better error handling
+            if (!$request->hasFile('file')) {
                 return response()->json([
                     'success' => false,
                     'error' => 'No file uploaded'
+                ], 400);
+            }
+
+            $file = $request->file('file');
+
+            // Check file is valid
+            if (!$file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid file upload: ' . $file->getErrorMessage()
+                ], 400);
+            }
+
+            // Check file extension
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, ['xlsx', 'xls'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid file type. Only XLSX and XLS files are allowed.'
+                ], 400);
+            }
+
+            // Check file size (10MB = 10485760 bytes)
+            if ($file->getSize() > 10485760) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'File too large. Maximum size is 10MB.'
                 ], 400);
             }
 
@@ -215,6 +239,14 @@ class ConversionController extends Controller
             }
 
             $filePath = storage_path('app/' . $path);
+
+            // Check file exists
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Uploaded file not found after storage'
+                ], 500);
+            }
 
             // Get headers from the file
             $result = $this->xlsxConverter->getHeaders($filePath);
@@ -236,14 +268,14 @@ class ConversionController extends Controller
                 'error' => $result['error'] ?? 'Unknown error occurred'
             ], 500);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Validation failed: ' . $e->getMessage(),
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Throwable $e) {
             // Catch all errors including fatal errors
+            \Log::error('XLSX Headers Error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage(),
@@ -262,7 +294,8 @@ class ConversionController extends Controller
                 'direction' => 'required|in:cirilica,latinica',
                 'files' => 'required|array',
                 'files.*' => 'file|mimes:xlsx,xls|max:10240', // max 10MB
-                'skip_columns' => 'nullable|string'
+                'skip_columns' => 'nullable|array',
+                'skip_columns.*' => 'nullable|string'
             ]);
 
             $direction = $request->input('direction');
