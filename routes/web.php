@@ -32,5 +32,7 @@ Route::get('/debug', function() {
         'php_post_max_size' => ini_get('post_max_size'),
         'php_memory_limit' => ini_get('memory_limit'),
         'php_max_file_uploads' => ini_get('max_file_uploads'),
+        'php_max_execution_time' => ini_get('max_execution_time'),
+        'php_max_input_time' => ini_get('max_input_time'),
     ]);
 });

@@ -21,6 +21,8 @@ $app = new Illuminate\Foundation\Application(
 @ini_set('post_max_size', '25M');
 @ini_set('memory_limit', '1G');
 @ini_set('max_file_uploads', '20');
+@ini_set('max_execution_time', '300');
+@ini_set('max_input_time', '300');
 
 /*
 |--------------------------------------------------------------------------

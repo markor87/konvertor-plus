@@ -290,6 +290,9 @@ class ConversionController extends Controller
     public function convertXlsx(Request $request)
     {
         try {
+            // Povećaj execution time limit za velike fajlove (5 minuta)
+            @set_time_limit(300);
+
             $request->validate([
                 'direction' => 'required|in:cirilica,latinica',
                 'files' => 'required|array',

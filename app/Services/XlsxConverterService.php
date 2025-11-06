@@ -95,6 +95,9 @@ class XlsxConverterService
     public function convertFile(string $filePath, bool $toCirilica, array $columnsToSkip = []): array
     {
         try {
+            // Povećaj execution time limit za velike fajlove
+            @set_time_limit(300);
+
             // Generiši naziv izlaznog fajla
             $suffix = $toCirilica ? '_cirilica' : '_latinica';
             $directory = dirname($filePath);
@@ -107,8 +110,10 @@ class XlsxConverterService
                 throw new Exception('Failed to copy file');
             }
 
-            // Učitaj Excel fajl
-            $spreadsheet = IOFactory::load($outputPath);
+            // Učitaj Excel fajl sa optimizacijama
+            $reader = IOFactory::createReaderForFile($outputPath);
+            $reader->setReadDataOnly(false); // Mora da dozvoli pisanje
+            $spreadsheet = $reader->load($outputPath);
 
             // Obradi sve worksheet-ove
             foreach ($spreadsheet->getAllSheets() as $worksheet) {
@@ -159,6 +164,11 @@ class XlsxConverterService
             // Snimi fajl
             $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
             $writer->save($outputPath);
+
+            // Oslobodi memoriju odmah
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet, $writer);
+            gc_collect_cycles();
 
             return [
                 'success' => true,
