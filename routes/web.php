@@ -28,5 +28,9 @@ Route::get('/debug', function() {
         'gd_enabled' => extension_loaded('gd'),
         'storage_writable' => is_writable(storage_path('app/uploads')),
         'storage_path' => storage_path('app/uploads'),
+        'php_upload_max_filesize' => ini_get('upload_max_filesize'),
+        'php_post_max_size' => ini_get('post_max_size'),
+        'php_memory_limit' => ini_get('memory_limit'),
+        'php_max_file_uploads' => ini_get('max_file_uploads'),
     ]);
 });

@@ -14,11 +14,11 @@ $app = new Illuminate\Foundation\Application(
 |--------------------------------------------------------------------------
 | Configure PHP Runtime Settings
 |--------------------------------------------------------------------------
-| Set PHP ini values to allow larger file uploads (10MB)
+| Set PHP ini values to allow larger file uploads (20MB)
 */
 
-@ini_set('upload_max_filesize', '10M');
-@ini_set('post_max_size', '12M');
+@ini_set('upload_max_filesize', '20M');
+@ini_set('post_max_size', '25M');
 @ini_set('memory_limit', '256M');
 @ini_set('max_file_uploads', '20');
 
