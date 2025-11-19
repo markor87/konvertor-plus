@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use Exception;
@@ -107,6 +109,8 @@ class DocxConverterService
 
     /**
      * Konvertuje tekstualni sadržaj unutar XML-a, čuvajući XML tagove
+     *
+     * SECURITY: Protected against XXE (XML External Entity) injection attacks
      */
     private function convertXmlContent(string $xml, bool $toCirilica): string
     {
@@ -115,10 +119,22 @@ class DocxConverterService
         $dom->preserveWhiteSpace = true;
         $dom->formatOutput = false;
 
+        // SECURITY: XXE Protection
+        // Disable external entity loading to prevent XXE attacks
+        $previousEntityLoader = libxml_disable_entity_loader(true);
+
         // Suppress warnings za malformed XML
         $previousErrorLevel = libxml_use_internal_errors(true);
-        $dom->loadXML($xml);
+
+        // Load XML with security flags:
+        // LIBXML_NONET - Disable network access
+        // LIBXML_DTDLOAD - Load external DTD
+        // LIBXML_DTDATTR - Default DTD attributes
+        $dom->loadXML($xml, LIBXML_NONET | LIBXML_DTDLOAD | LIBXML_DTDATTR);
+
+        // Restore previous settings
         libxml_use_internal_errors($previousErrorLevel);
+        libxml_disable_entity_loader($previousEntityLoader);
 
         // Pronađi sve <w:t> tagove (Word text nodes)
         $xpath = new \DOMXPath($dom);

@@ -18,9 +18,15 @@ Route::post('/convert/docx', [ConversionController::class, 'convertDocx'])->name
 Route::post('/convert/xlsx', [ConversionController::class, 'convertXlsx'])->name('convert.xlsx');
 Route::post('/xlsx/headers', [ConversionController::class, 'getXlsxHeaders'])->name('xlsx.headers');
 
-// Debug route
+// Debug route - SECURITY: Only accessible in local/development environment
 Route::get('/debug', function() {
+    // SECURITY: Block access in production
+    if (!app()->environment(['local', 'development', 'testing'])) {
+        abort(403, 'Debug endpoint is disabled in production');
+    }
+
     return response()->json([
+        'environment' => app()->environment(),
         'phpword_exists' => class_exists('\PhpOffice\PhpWord\IOFactory'),
         'phpspreadsheet_exists' => class_exists('\PhpOffice\PhpSpreadsheet\IOFactory'),
         'zip_enabled' => extension_loaded('zip'),
@@ -35,4 +41,4 @@ Route::get('/debug', function() {
         'php_max_execution_time' => ini_get('max_execution_time'),
         'php_max_input_time' => ini_get('max_input_time'),
     ]);
-});
+})->name('debug');

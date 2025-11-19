@@ -200,10 +200,25 @@ class ConversionController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Throwable $e) {
+            // SECURITY: Generate unique error ID for tracking
+            $errorId = Str::uuid()->toString();
+
+            // Log detailed error server-side
+            Log::error('DOCX Conversion Error', [
+                'error_id' => $errorId,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+
+            // SECURITY: Return safe error message to client (no stack trace!)
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
-                'trace' => config('app.debug') ? $e->getTraceAsString() : null
+                'error' => 'An error occurred during conversion. Please try again.',
+                'error_id' => $errorId // For support/debugging reference
             ], 500);
         }
     }
@@ -296,17 +311,25 @@ class ConversionController extends Controller
             ], 500);
 
         } catch (\Throwable $e) {
-            // Catch all errors including fatal errors
-            \Log::error('XLSX Headers Error: ' . $e->getMessage(), [
+            // SECURITY: Generate unique error ID for tracking
+            $errorId = Str::uuid()->toString();
+
+            // Catch all errors including fatal errors and log server-side
+            Log::error('XLSX Headers Error', [
+                'error_id' => $errorId,
+                'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent()
             ]);
 
+            // SECURITY: Return safe error message to client (no stack trace!)
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
-                'trace' => config('app.debug') ? $e->getTraceAsString() : null
+                'error' => 'An error occurred while reading file headers. Please try again.',
+                'error_id' => $errorId // For support/debugging reference
             ], 500);
         }
     }
@@ -461,10 +484,25 @@ class ConversionController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Throwable $e) {
+            // SECURITY: Generate unique error ID for tracking
+            $errorId = Str::uuid()->toString();
+
+            // Log detailed error server-side
+            Log::error('XLSX Conversion Error', [
+                'error_id' => $errorId,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent()
+            ]);
+
+            // SECURITY: Return safe error message to client (no stack trace!)
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage(),
-                'trace' => config('app.debug') ? $e->getTraceAsString() : null
+                'error' => 'An error occurred during conversion. Please try again.',
+                'error_id' => $errorId // For support/debugging reference
             ], 500);
         }
     }
