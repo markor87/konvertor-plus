@@ -405,7 +405,10 @@ class ConversionController extends Controller
     {
         try {
             // Povećaj execution time limit za velike fajlove (5 minuta)
-            @set_time_limit(300);
+            // Ignoriraj grešku ako je safe_mode uključen ili korisnik nema permisiju
+            if (function_exists('set_time_limit') && !ini_get('safe_mode')) {
+                set_time_limit(300);
+            }
 
             $request->validate([
                 'direction' => 'required|in:cirilica,latinica',

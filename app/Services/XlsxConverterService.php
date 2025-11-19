@@ -137,8 +137,11 @@ class XlsxConverterService
     public function convertFile(string $filePath, bool $toCirilica, array $columnsToSkip = []): array
     {
         try {
-            // Povećaj execution time limit za velike fajlove
-            @set_time_limit(300);
+            // Povećaj execution time limit za velike fajlove (5 minuta)
+            // Ignoriraj grešku ako je safe_mode uključen ili korisnik nema permisiju
+            if (function_exists('set_time_limit') && !ini_get('safe_mode')) {
+                set_time_limit(300);
+            }
 
             // Generiši naziv izlaznog fajla
             $suffix = $toCirilica ? '_cirilica' : '_latinica';

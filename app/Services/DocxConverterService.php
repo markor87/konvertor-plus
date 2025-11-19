@@ -70,23 +70,28 @@ class DocxConverterService
             $zip->deleteName('word/document.xml');
             $zip->addFromString('word/document.xml', $convertedXml);
 
-            // Konvertuj headers ako postoje
-            for ($i = 1; $i <= 10; $i++) {
-                $headerXml = $zip->getFromName("word/header{$i}.xml");
-                if ($headerXml !== false) {
-                    $convertedHeader = $this->convertXmlContent($headerXml, $toCirilica);
-                    $zip->deleteName("word/header{$i}.xml");
-                    $zip->addFromString("word/header{$i}.xml", $convertedHeader);
-                }
-            }
+            // Konvertuj sve headers dinamički (bez hardcoded limita)
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $fileName = $zip->getNameIndex($i);
 
-            // Konvertuj footers ako postoje
-            for ($i = 1; $i <= 10; $i++) {
-                $footerXml = $zip->getFromName("word/footer{$i}.xml");
-                if ($footerXml !== false) {
-                    $convertedFooter = $this->convertXmlContent($footerXml, $toCirilica);
-                    $zip->deleteName("word/footer{$i}.xml");
-                    $zip->addFromString("word/footer{$i}.xml", $convertedFooter);
+                // Proveri da li je header fajl
+                if ($fileName && preg_match('#^word/header\d+\.xml$#', $fileName)) {
+                    $headerXml = $zip->getFromName($fileName);
+                    if ($headerXml !== false) {
+                        $convertedHeader = $this->convertXmlContent($headerXml, $toCirilica);
+                        $zip->deleteName($fileName);
+                        $zip->addFromString($fileName, $convertedHeader);
+                    }
+                }
+
+                // Proveri da li je footer fajl
+                if ($fileName && preg_match('#^word/footer\d+\.xml$#', $fileName)) {
+                    $footerXml = $zip->getFromName($fileName);
+                    if ($footerXml !== false) {
+                        $convertedFooter = $this->convertXmlContent($footerXml, $toCirilica);
+                        $zip->deleteName($fileName);
+                        $zip->addFromString($fileName, $convertedFooter);
+                    }
                 }
             }
 
