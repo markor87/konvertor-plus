@@ -12,11 +12,22 @@ use App\Http\Controllers\ConversionController;
 // Glavna stranica
 Route::get('/', [ConversionController::class, 'index'])->name('home');
 
-// API rute za konverziju
-Route::post('/convert/text', [ConversionController::class, 'convertText'])->name('convert.text');
-Route::post('/convert/docx', [ConversionController::class, 'convertDocx'])->name('convert.docx');
-Route::post('/convert/xlsx', [ConversionController::class, 'convertXlsx'])->name('convert.xlsx');
-Route::post('/xlsx/headers', [ConversionController::class, 'getXlsxHeaders'])->name('xlsx.headers');
+// API rute za konverziju - SECURITY: Rate limited to prevent abuse
+Route::post('/convert/text', [ConversionController::class, 'convertText'])
+    ->middleware('throttle.conversions')
+    ->name('convert.text');
+
+Route::post('/convert/docx', [ConversionController::class, 'convertDocx'])
+    ->middleware('throttle.conversions')
+    ->name('convert.docx');
+
+Route::post('/convert/xlsx', [ConversionController::class, 'convertXlsx'])
+    ->middleware('throttle.conversions')
+    ->name('convert.xlsx');
+
+Route::post('/xlsx/headers', [ConversionController::class, 'getXlsxHeaders'])
+    ->middleware('throttle.conversions')
+    ->name('xlsx.headers');
 
 // Debug route - SECURITY: Only accessible in local/development environment
 Route::get('/debug', function() {

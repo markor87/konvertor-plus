@@ -45,5 +45,6 @@ class Kernel extends HttpKernel
      */
     protected $middlewareAliases = [
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'throttle.conversions' => \App\Http\Middleware\ThrottleConversions::class,
     ];
 }
