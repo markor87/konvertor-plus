@@ -6,6 +6,13 @@ namespace App\Services;
 
 class TextConverterService
 {
+    /**
+     * Pre-computed sorted maps for performance optimization
+     * These are computed once and reused
+     */
+    private ?array $sortedFullMap = null;
+    private ?array $sortedMapNoDigraphs = null;
+
     // Izuzeci za digraf "dj" - ne konvertuju se u "đ"
     private array $exceptDj = [
         'adjektiv', 'adjunkt', 'bazdje', 'bdje', 'bezdje', 'blijedje', 'bludje', 'bridje',
@@ -55,6 +62,51 @@ class TextConverterService
     ];
 
     /**
+     * PERFORMANCE: Initialize and cache sorted maps
+     * Called once on first use, then reused for all conversions
+     */
+    private function initializeSortedMaps(): void
+    {
+        if ($this->sortedFullMap !== null) {
+            return; // Already initialized
+        }
+
+        // Puna mapa za konverziju
+        $fullMap = [
+            'dj' => 'ђ', 'nj' => 'њ', 'lj' => 'љ',
+            'Dj' => 'Ђ', 'Nj' => 'Њ', 'Lj' => 'Љ',
+            'A' => 'А', 'B' => 'Б', 'C' => 'Ц', 'Č' => 'Ч', 'Ć' => 'Ћ',
+            'D' => 'Д', 'Dž' => 'Џ', 'E' => 'Е', 'F' => 'Ф', 'G' => 'Г', 'H' => 'Х',
+            'I' => 'И', 'J' => 'Ј', 'K' => 'К', 'L' => 'Л', 'M' => 'М', 'N' => 'Н',
+            'O' => 'О', 'P' => 'П', 'R' => 'Р', 'S' => 'С', 'Š' => 'Ш', 'T' => 'Т',
+            'U' => 'У', 'V' => 'В', 'Z' => 'З', 'Ž' => 'Ж',
+            'a' => 'а', 'b' => 'б', 'c' => 'ц', 'č' => 'ч', 'ć' => 'ћ',
+            'd' => 'д', 'dž' => 'џ', 'e' => 'е', 'f' => 'ф', 'g' => 'г', 'h' => 'х',
+            'i' => 'и', 'j' => 'ј', 'k' => 'к', 'l' => 'л', 'm' => 'м', 'n' => 'н',
+            'o' => 'о', 'p' => 'п', 'r' => 'р', 's' => 'с', 'š' => 'ш', 't' => 'т',
+            'u' => 'у', 'v' => 'в', 'z' => 'з', 'ž' => 'ж'
+        ];
+
+        // Mapa bez digrafa za izuzetke
+        $mapNoDigraphs = array_filter($fullMap, function($key) {
+            $lower = mb_strtolower($key);
+            return !in_array($lower, ['dj', 'nj', 'dž']);
+        }, ARRAY_FILTER_USE_KEY);
+
+        // PERFORMANCE: Pre-sort by key length (longest first) to prioritize digraphs
+        // This is done ONCE instead of for every word
+        $this->sortedFullMap = $fullMap;
+        uksort($this->sortedFullMap, function($a, $b) {
+            return mb_strlen($b) - mb_strlen($a);
+        });
+
+        $this->sortedMapNoDigraphs = $mapNoDigraphs;
+        uksort($this->sortedMapNoDigraphs, function($a, $b) {
+            return mb_strlen($b) - mb_strlen($a);
+        });
+    }
+
+    /**
      * Konvertuje tekst iz ćirilice u latinicu
      */
     public function convertToLatinica(string $input): string
@@ -86,27 +138,8 @@ class TextConverterService
      */
     public function convertToCirilica(string $input): string
     {
-        // Puna mapa za konverziju
-        $fullMap = [
-            'dj' => 'ђ', 'nj' => 'њ', 'lj' => 'љ',
-            'Dj' => 'Ђ', 'Nj' => 'Њ', 'Lj' => 'Љ',
-            'A' => 'А', 'B' => 'Б', 'C' => 'Ц', 'Č' => 'Ч', 'Ć' => 'Ћ',
-            'D' => 'Д', 'Dž' => 'Џ', 'E' => 'Е', 'F' => 'Ф', 'G' => 'Г', 'H' => 'Х',
-            'I' => 'И', 'J' => 'Ј', 'K' => 'К', 'L' => 'Л', 'M' => 'М', 'N' => 'Н',
-            'O' => 'О', 'P' => 'П', 'R' => 'Р', 'S' => 'С', 'Š' => 'Ш', 'T' => 'Т',
-            'U' => 'У', 'V' => 'В', 'Z' => 'З', 'Ž' => 'Ж',
-            'a' => 'а', 'b' => 'б', 'c' => 'ц', 'č' => 'ч', 'ć' => 'ћ',
-            'd' => 'д', 'dž' => 'џ', 'e' => 'е', 'f' => 'ф', 'g' => 'г', 'h' => 'х',
-            'i' => 'и', 'j' => 'ј', 'k' => 'к', 'l' => 'л', 'm' => 'м', 'n' => 'н',
-            'o' => 'о', 'p' => 'п', 'r' => 'р', 's' => 'с', 'š' => 'ш', 't' => 'т',
-            'u' => 'у', 'v' => 'в', 'z' => 'з', 'ž' => 'ж'
-        ];
-
-        // Mapa bez digrafa za izuzetke
-        $mapNoDigraphs = array_filter($fullMap, function($key) {
-            $lower = mb_strtolower($key);
-            return !in_array($lower, ['dj', 'nj', 'dž']);
-        }, ARRAY_FILTER_USE_KEY);
+        // PERFORMANCE: Initialize sorted maps once
+        $this->initializeSortedMaps();
 
         // Podela teksta na reči i ostalo (interpunkcija, razmaci, itd.)
         $parts = preg_split('/(\W+)/u', $input, -1, PREG_SPLIT_DELIM_CAPTURE);
@@ -146,14 +179,8 @@ class TextConverterService
                 }
             }
 
-            // Odaberi odgovarajuću mapu
-            $map = $isException ? $mapNoDigraphs : $fullMap;
-
-            // Sortiraj po dužini ključa (najduži prvi) da bi prvo konvertovao digrafe
-            $sortedMap = $map;
-            uksort($sortedMap, function($a, $b) {
-                return mb_strlen($b) - mb_strlen($a);
-            });
+            // PERFORMANCE: Use pre-sorted map (no uksort needed!)
+            $sortedMap = $isException ? $this->sortedMapNoDigraphs : $this->sortedFullMap;
 
             // Konvertuj token
             $converted = $token;
