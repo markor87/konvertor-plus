@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use App\Services\TextConverterService;
 use App\Services\DocxConverterService;
 use App\Services\XlsxConverterService;
@@ -23,6 +27,29 @@ class ConversionController extends Controller
         $this->textConverter = $textConverter;
         $this->docxConverter = $docxConverter;
         $this->xlsxConverter = $xlsxConverter;
+    }
+
+    /**
+     * Generates secure filename using UUID to prevent:
+     * - Path traversal attacks
+     * - Race conditions (file overwrite)
+     * - Filename collisions
+     *
+     * @param \Illuminate\Http\UploadedFile $file
+     * @return string
+     */
+    private function generateSecureFilename($file): string
+    {
+        // Get extension from uploaded file
+        $extension = $file->getClientOriginalExtension();
+
+        // Sanitize extension (only alphanumeric)
+        $safeExtension = preg_replace('/[^a-zA-Z0-9]/', '', $extension);
+
+        // Generate UUID v4 for guaranteed uniqueness
+        $uuid = Str::uuid()->toString();
+
+        return "{$uuid}.{$safeExtension}";
     }
 
     /**
@@ -91,7 +118,7 @@ class ConversionController extends Controller
 
             // Upload fajlova
             foreach ($files as $file) {
-                $filename = time() . '_' . $file->getClientOriginalName();
+                $filename = $this->generateSecureFilename($file);
                 $path = $file->storeAs('uploads/docx', $filename);
                 $uploadedPaths[] = storage_path('app/' . $path);
             }
@@ -225,8 +252,8 @@ class ConversionController extends Controller
                 ], 400);
             }
 
-            // Generate unique filename
-            $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+            // Generate secure filename using UUID
+            $filename = $this->generateSecureFilename($file);
 
             // Store the file
             $path = $file->storeAs('uploads/xlsx', $filename);
@@ -320,12 +347,13 @@ class ConversionController extends Controller
 
             // Upload fajlova i priprema podataka
             foreach ($files as $index => $file) {
-                $filename = time() . '_' . $index . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                $filename = $this->generateSecureFilename($file);
+                $originalName = basename($file->getClientOriginalName()); // For error messages only
                 $path = $file->storeAs('uploads/xlsx', $filename);
 
                 if (!$path) {
                     $failed[] = [
-                        'file' => $file->getClientOriginalName(),
+                        'file' => $originalName,
                         'error' => 'Failed to store file'
                     ];
                     continue;

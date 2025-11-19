@@ -12,7 +12,17 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Clean up temporary upload files every hour
+        // Files older than 1 hour (3600 seconds) will be deleted
+        $schedule->command('cleanup:temp-files --age=3600')
+                 ->hourly()
+                 ->withoutOverlapping()
+                 ->onSuccess(function () {
+                     \Log::info('Temp files cleanup completed successfully');
+                 })
+                 ->onFailure(function () {
+                     \Log::error('Temp files cleanup failed');
+                 });
     }
 
     /**
