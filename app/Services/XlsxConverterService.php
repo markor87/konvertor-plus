@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -24,9 +26,43 @@ class XlsxConverterService
 {
     private TextConverterService $textConverter;
 
+    /**
+     * Characters that can trigger formula injection
+     * @var array
+     */
+    private const FORMULA_INJECTION_CHARS = ['=', '+', '-', '@', '|', "\t", "\r"];
+
     public function __construct(TextConverterService $textConverter)
     {
         $this->textConverter = $textConverter;
+    }
+
+    /**
+     * SECURITY: Sanitizes cell value to prevent formula injection
+     *
+     * Formula injection (CSV injection) occurs when spreadsheet applications
+     * interpret cell values starting with special characters as formulas,
+     * potentially leading to code execution or data exfiltration.
+     *
+     * @param string $value The cell value to sanitize
+     * @return string The sanitized value
+     */
+    private function sanitizeForFormulaInjection(string $value): string
+    {
+        if (empty($value)) {
+            return $value;
+        }
+
+        // Check if value starts with dangerous characters
+        $firstChar = substr($value, 0, 1);
+
+        if (in_array($firstChar, self::FORMULA_INJECTION_CHARS, true)) {
+            // Prepend single quote to force Excel to treat as text
+            // This is the standard way to escape formula characters
+            return "'" . $value;
+        }
+
+        return $value;
     }
 
     /**
@@ -57,9 +93,15 @@ class XlsxConverterService
                 $cellValue = $worksheet->getCellByColumnAndRow($col, 1)->getValue();
                 if (!empty($cellValue)) {
                     $columnLetter = Coordinate::stringFromColumnIndex($col);
+
+                    // SECURITY: Sanitize header names for formula injection
+                    $sanitizedName = is_string($cellValue)
+                        ? $this->sanitizeForFormulaInjection($cellValue)
+                        : $cellValue;
+
                     $headers[] = [
                         'column' => $columnLetter,
-                        'name' => $cellValue
+                        'name' => $sanitizedName
                     ];
                 }
             }
@@ -155,7 +197,10 @@ class XlsxConverterService
                             $converted = $toCirilica
                                 ? $this->textConverter->convertToCirilica($cellValue)
                                 : $this->textConverter->convertToLatinica($cellValue);
-                            $cell->setValue($converted);
+
+                            // SECURITY: Sanitize for formula injection before setting
+                            $sanitized = $this->sanitizeForFormulaInjection($converted);
+                            $cell->setValue($sanitized);
                         }
                     }
                 }
