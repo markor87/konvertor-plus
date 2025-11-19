@@ -11,6 +11,7 @@ use App\Services\TextConverterService;
 use App\Services\DocxConverterService;
 use App\Services\XlsxConverterService;
 use App\Services\MimeValidationService;
+use App\Services\ZipBombProtectionService;
 use ZipArchive;
 use Exception;
 
@@ -20,17 +21,20 @@ class ConversionController extends Controller
     private DocxConverterService $docxConverter;
     private XlsxConverterService $xlsxConverter;
     private MimeValidationService $mimeValidator;
+    private ZipBombProtectionService $zipBombProtection;
 
     public function __construct(
         TextConverterService $textConverter,
         DocxConverterService $docxConverter,
         XlsxConverterService $xlsxConverter,
-        MimeValidationService $mimeValidator
+        MimeValidationService $mimeValidator,
+        ZipBombProtectionService $zipBombProtection
     ) {
         $this->textConverter = $textConverter;
         $this->docxConverter = $docxConverter;
         $this->xlsxConverter = $xlsxConverter;
         $this->mimeValidator = $mimeValidator;
+        $this->zipBombProtection = $zipBombProtection;
     }
 
     /**
@@ -148,6 +152,20 @@ class ConversionController extends Controller
 
                 if (!$validation['valid']) {
                     continue; // Skip invalid files
+                }
+
+                // SECURITY: Check for ZIP bomb before storing
+                $tempPath = $file->getRealPath();
+                if ($tempPath) {
+                    $zipCheck = $this->zipBombProtection->validate($tempPath);
+
+                    if (!$zipCheck['safe']) {
+                        $failed[] = [
+                            'file' => 'File ' . ($index + 1),
+                            'error' => 'Security: ' . $zipCheck['error']
+                        ];
+                        continue; // Skip dangerous files
+                    }
                 }
 
                 $filename = $this->generateSecureFilename($file);
@@ -292,6 +310,19 @@ class ConversionController extends Controller
                 ], 400);
             }
 
+            // SECURITY: Check for ZIP bomb before processing
+            $tempPath = $file->getRealPath();
+            if ($tempPath) {
+                $zipCheck = $this->zipBombProtection->validate($tempPath);
+
+                if (!$zipCheck['safe']) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Security: ' . $zipCheck['error']
+                    ], 400);
+                }
+            }
+
             // Check file size (20MB = 20971520 bytes)
             if ($file->getSize() > 20971520) {
                 return response()->json([
@@ -428,8 +459,23 @@ class ConversionController extends Controller
 
             // Upload fajlova i priprema podataka (only validated ones)
             foreach ($validFiles as $index => $file) {
-                $filename = $this->generateSecureFilename($file);
                 $originalName = basename($file->getClientOriginalName()); // For error messages only
+
+                // SECURITY: Check for ZIP bomb before storing
+                $tempPath = $file->getRealPath();
+                if ($tempPath) {
+                    $zipCheck = $this->zipBombProtection->validate($tempPath);
+
+                    if (!$zipCheck['safe']) {
+                        $failed[] = [
+                            'file' => $originalName,
+                            'error' => 'Security: ' . $zipCheck['error']
+                        ];
+                        continue; // Skip dangerous files
+                    }
+                }
+
+                $filename = $this->generateSecureFilename($file);
                 $path = $file->storeAs('uploads/xlsx', $filename);
 
                 if (!$path) {
