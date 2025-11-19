@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\TextConverterService;
 use App\Services\DocxConverterService;
 use App\Services\XlsxConverterService;
+use App\Services\MimeValidationService;
 use ZipArchive;
 use Exception;
 
@@ -18,15 +19,18 @@ class ConversionController extends Controller
     private TextConverterService $textConverter;
     private DocxConverterService $docxConverter;
     private XlsxConverterService $xlsxConverter;
+    private MimeValidationService $mimeValidator;
 
     public function __construct(
         TextConverterService $textConverter,
         DocxConverterService $docxConverter,
-        XlsxConverterService $xlsxConverter
+        XlsxConverterService $xlsxConverter,
+        MimeValidationService $mimeValidator
     ) {
         $this->textConverter = $textConverter;
         $this->docxConverter = $docxConverter;
         $this->xlsxConverter = $xlsxConverter;
+        $this->mimeValidator = $mimeValidator;
     }
 
     /**
@@ -116,8 +120,36 @@ class ConversionController extends Controller
             $outputPaths = [];
             $failed = [];
 
-            // Upload fajlova
-            foreach ($files as $file) {
+            // SECURITY: Validate files using magic bytes before upload
+            foreach ($files as $index => $file) {
+                $validation = $this->mimeValidator->validate($file, ['docx', 'doc']);
+
+                if (!$validation['valid']) {
+                    $failed[] = [
+                        'file' => 'File ' . ($index + 1),
+                        'error' => $validation['error']
+                    ];
+                }
+            }
+
+            // If all files failed validation, return error
+            if (count($failed) === count($files)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'All files failed validation',
+                    'failed' => $failed
+                ], 400);
+            }
+
+            // Upload fajlova (only validated ones)
+            foreach ($files as $index => $file) {
+                // Re-validate (to skip failed files from previous loop)
+                $validation = $this->mimeValidator->validate($file, ['docx', 'doc']);
+
+                if (!$validation['valid']) {
+                    continue; // Skip invalid files
+                }
+
                 $filename = $this->generateSecureFilename($file);
                 $path = $file->storeAs('uploads/docx', $filename);
                 $uploadedPaths[] = storage_path('app/' . $path);
@@ -250,12 +282,13 @@ class ConversionController extends Controller
                 ], 400);
             }
 
-            // Check file extension
-            $extension = strtolower($file->getClientOriginalExtension());
-            if (!in_array($extension, ['xlsx', 'xls'])) {
+            // SECURITY: Validate file using magic bytes
+            $validation = $this->mimeValidator->validate($file, ['xlsx', 'xls']);
+
+            if (!$validation['valid']) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Invalid file type. Only XLSX and XLS files are allowed.'
+                    'error' => $validation['error']
                 ], 400);
             }
 
@@ -368,8 +401,33 @@ class ConversionController extends Controller
             $outputPaths = [];
             $failed = [];
 
-            // Upload fajlova i priprema podataka
+            // SECURITY: Validate files using magic bytes before upload
+            $validFiles = [];
             foreach ($files as $index => $file) {
+                $validation = $this->mimeValidator->validate($file, ['xlsx', 'xls']);
+                $originalName = basename($file->getClientOriginalName()); // For error messages only
+
+                if (!$validation['valid']) {
+                    $failed[] = [
+                        'file' => $originalName,
+                        'error' => $validation['error']
+                    ];
+                } else {
+                    $validFiles[$index] = $file;
+                }
+            }
+
+            // If all files failed validation, return error
+            if (empty($validFiles)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'All files failed validation',
+                    'failed' => $failed
+                ], 400);
+            }
+
+            // Upload fajlova i priprema podataka (only validated ones)
+            foreach ($validFiles as $index => $file) {
                 $filename = $this->generateSecureFilename($file);
                 $originalName = basename($file->getClientOriginalName()); // For error messages only
                 $path = $file->storeAs('uploads/xlsx', $filename);
